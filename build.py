@@ -69,6 +69,25 @@ TITLES = [
                ("p23", 51, 12, "Alexander Skarsg&#229;rd; Cardi B", "Feb 2, 2026", "Verbal")]),
 ]
 
+# Nielsen Live+30 (Persons 2+), per source-media folder: (broadcast, streaming).
+# Sources: "NMA - January-May Data-Updated.xlsx" (7/7/26) and "NMA - July 2026.xlsx" (8/26/26).
+# June 2026 placements not yet delivered by Nielsen as of 10/1/26.
+NIELSEN = {
+  "p21": (0, 4284350),          # 56 Days S01E01 — SCR Amazon
+  "p12": (113128, 2024854),     # In the City S01E01 — Bravo 5/20 + Peacock
+  "p13": (93196, 1467111),      # RHORI S01E06 — Bravo 5/4 + Peacock
+  "p02": (116809, 8056165),     # The Five Star Weekend S01E01 — Bravo 7/15 + Peacock
+}
+
+def short(n):
+    if n >= 1_000_000: return f"{n/1_000_000:.1f}".rstrip('0').rstrip('.') + 'M'
+    if n >= 1000: return f"{round(n/1000)}K"
+    return str(n)
+
+def split_line(nb, ns):
+    parts = ([f"Broadcast {short(nb)}"] if nb else []) + ([f"Streaming {short(ns)}"] if ns else [])
+    return ' &#183; '.join(parts)
+
 def secs(h, m, s): return int(h) * 3600 + int(m) * 60 + int(s)
 def fmt(t): return f"{t//3600:02d}h {t%3600//60:02d}m {t%60:02d}s"
 
@@ -96,7 +115,10 @@ def build_clips():
     n = 0
     for t in TITLES:
         out = []
+        tb = tsm = 0
         for folder, season, ep, ept, date, ptype in t['scenes']:
+            nb, ns = NIELSEN.get(folder, (0, 0))
+            tb += nb; tsm += ns
             d = os.path.join(SRC, folder)
             frames = sorted(glob.glob(d + '/*.jpg'), key=frame_secs)
             for v in sorted(glob.glob(d + '/*.mp4'), key=lambda p: window(p)[0]):
@@ -110,8 +132,12 @@ def build_clips():
                 out.append(dict(season=season, episode=ep, episodeTitle=ept, firstAirDate=date,
                                 timestamps=ranges(fs),
                                 screenTime=None if ptype == 'Verbal' else f"0:{len(fs)//60:02d}:{len(fs)%60:02d}",
-                                placementType=ptype, video=f"clips/{key}.mp4", thumb=f"clips/{key}.jpg"))
+                                placementType=ptype, video=f"clips/{key}.mp4", thumb=f"clips/{key}.jpg",
+                                impressions=(nb + ns) or None))
         t['scenes'] = out
+        if tb + tsm:
+            t['totalImpressions'] = tb + tsm
+            t['split'] = split_line(tb, tsm)
     return n
 
 # ---------- Pipeline ----------
@@ -121,7 +147,7 @@ SHOWS = [
   dict(key="naughty", title="Naughty", platform="Universal Pictures &#183; LuckyChap", status="propped",
        date="Shoots Oct 13, 2026 &#8212; release Nov 5, 2027",
        note="Cast: Jennifer Aniston, Peter Dinklage. Directed by Olivia Wilde.",
-       inventory=[("&#8212;", "UPS propping confirmed &#8212; items TBD")], summary="Propping"),
+       inventory=[("1", "Packaging")]),
   dict(key="runningpoint", title="Running Point", platform="Netflix &#183; Season 3", status="sent",
        date="Air Date: TBD &#8212; Season 3 in production",
        note="Cast: Kate Hudson, Drew Tarver, Scott MacArthur.",
@@ -162,6 +188,9 @@ SHOWS = [
        inventory=[("h", "Order #7396 &#183; 06/01/2026"), ("1", "UPS Package Car")]),
 ]
 
+# No poster yet: showcard is the lead / biggest star (Wikimedia Commons photo).
+CAST_PHOTOS = {"naughty", "runningpoint", "thunderroad", "nda", "aquietplace3", "tyrant"}
+
 def pipeline_json():
     shows = []
     for s in SHOWS:
@@ -170,6 +199,7 @@ def pipeline_json():
                           for a, b in s['inventory']]
         img = glob.glob(f"{ROOT}/showcards/{s['key']}.*")
         s['img'] = 'showcards/' + os.path.basename(img[0]) if img else ''
+        if s['key'] in CAST_PHOTOS: s['photoIsActor'] = True
         shows.append(s)
     def order_date(s):
         h = next((i['text'] for i in s['inventory'] if i['type'] == 'header'), '')

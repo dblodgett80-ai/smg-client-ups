@@ -191,7 +191,7 @@
   .note{
     font-size:11px; color:var(--text-dim); line-height:1.4; margin-top:2px;
   }
-  .sent .date-line{ color:var(--text-dim); }
+  .sent .date-line, .propped .date-line{ color:var(--text-dim); }
 
   .inv{
     margin-top:10px; padding-top:9px; border-top:1px solid var(--line);
@@ -282,6 +282,9 @@
     font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:600;
     color:var(--gold); letter-spacing:.02em; margin-top:3px;
   }
+  .vcard-split{
+    font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text-dim); letter-spacing:.02em;
+  }
   .vcard-cast{
     font-size:11px; color:var(--text-dim); line-height:1.4; margin-top:3px;
   }
@@ -352,6 +355,7 @@
       <div class="stat"><span class="num" id="clipCount">0</span><span class="lbl">Verified clips</span></div>
       <div class="stat"><span class="num" id="sentCount">0</span><span class="lbl">In pipeline</span></div>
       <div class="stat"><span class="num" id="totalCount">0</span><span class="lbl">Total titles</span></div>
+      <div class="stat"><span class="num" id="ytdImpressions">0</span><span class="lbl">YTD Impressions</span></div>
     </div>
   </div>
 </header>
@@ -492,6 +496,7 @@
         <div class="vcard-meta">${t.network}${t.genre ? ' &#183; ' + t.genre : ''}</div>
         ${t.cast ? `<div class="vcard-cast">${t.cast.join(', ')}</div>` : ''}
         <div class="vcard-impressions">${t.totalImpressions ? fmtImpressions(t.totalImpressions) + ' impressions to date (Nielsen)' : 'Impressions: TBD'}</div>
+        ${t.split ? `<div class="vcard-split">${t.split}</div>` : ''}
         <div class="vcard-episode">${episodeLine(hero)}</div>
         <div class="vcard-clip-meta"><span>${clipMeta(hero)}</span></div>
         ${rest.length ? `
@@ -509,6 +514,7 @@
   document.getElementById('securedCount2').textContent = titles.length;
   document.getElementById('securedCountHeader').textContent = titles.length;
   document.getElementById('totalCount').textContent = titles.length + (window.__pipelineCount || 0);
+  document.getElementById('ytdImpressions').textContent = fmtImpressions(titles.reduce((n, t) => n + (t.totalImpressions || 0), 0));
   document.getElementById('clipCount').textContent = titles.reduce((n, t) => n + t.scenes.length, 0);
 })();
 </script>
