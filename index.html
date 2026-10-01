@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>UPS Activity Tracker</title>
+<link rel="icon" href="assets/ups-logo.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0e0b09;
+    --surface:#18130f;
+    --surface-raised:#1e1813;
+    --line:#33291f;
+    --text:#f5f0e8;
+    --text-dim:#a89c8e;
+    --gold:#ffb500;
+    --gold-strong:#ffc845;
+    --sent:#7c8592;
+    --sent-bg:#211a14;
+    --aired-bg:#2a1f08;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 32px -14px rgba(0,0,0,.6);
+    color-scheme: dark;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Manrope',system-ui,-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+
+  .wrap{max-width:1180px; margin:0 auto; padding:0 clamp(20px,4vw,48px) 96px;}
+
+  /* ---------- Masthead ---------- */
+  header.masthead{
+    padding:56px clamp(20px,4vw,48px) 40px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:48px;
+  }
+  .masthead-inner{max-width:1180px; margin:0 auto;}
+  .brand-row{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    margin-bottom:28px;
+  }
+  .brand-mark{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    display:flex; align-items:center; gap:10px;
+  }
+  .brand-mark .x{color:var(--gold); font-family:'Fraunces',serif; font-style:italic; font-size:13px;}
+  .brand-mark strong{color:var(--text); font-weight:600; letter-spacing:.16em;}
+  .brand-logo{
+    height:34px; width:auto; display:block;
+  }
+  .client-logo{
+    height:56px; width:auto; display:block;
+  }
+  h1.title{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-optical-sizing:auto;
+    font-size:clamp(34px,5.4vw,58px);
+    line-height:1.04;
+    letter-spacing:-0.01em;
+    margin:0 0 14px;
+    text-wrap:balance;
+    max-width:16ch;
+  }
+  h1.title em{
+    font-style:italic;
+    font-weight:500;
+    color:var(--gold-strong);
+  }
+  p.tagline{
+    font-size:15px;
+    color:var(--text-dim);
+    max-width:52ch;
+    line-height:1.6;
+    margin:0 0 26px;
+  }
+  p.tagline em{
+    font-style:italic;
+    font-weight:500;
+    color:var(--gold-strong);
+  }
+  .stat-row{display:flex; gap:28px; flex-wrap:wrap;}
+  .stat{display:flex; flex-direction:column; gap:2px;}
+  .stat .num{
+    font-family:'Fraunces',serif; font-weight:600; font-size:26px; color:var(--text);
+    font-variant-numeric:tabular-nums;
+  }
+  .stat .lbl{
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--text-dim);
+  }
+
+  /* ---------- Sections ---------- */
+  section.group{margin-bottom:64px;}
+  .group-head{
+    display:flex; align-items:baseline; gap:14px; margin-bottom:24px;
+    padding-bottom:14px; border-bottom:1px solid var(--line);
+  }
+  .group-head h2{
+    font-family:'Fraunces',serif; font-weight:600; font-size:22px; margin:0;
+    letter-spacing:-.01em;
+  }
+  .group-head .count{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--text-dim);
+  }
+  .group-head .desc{
+    margin-left:auto; font-size:12.5px; color:var(--text-dim); max-width:34ch; text-align:right;
+    display:none;
+  }
+  @media (min-width:720px){ .group-head .desc{display:block;} }
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(196px,1fr));
+    gap:22px 18px;
+  }
+
+  /* ---------- Card ---------- */
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+    display:flex; flex-direction:column;
+    transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .card:hover{ transform:translateY(-3px); }
+  .card:focus-within{ outline:2px solid var(--gold); outline-offset:2px; }
+
+  .card-media{
+    position:relative;
+    aspect-ratio:2/3;
+    background:var(--surface-raised);
+    overflow:hidden;
+  }
+  .card-media img{
+    width:100%; height:100%; object-fit:contain; object-position:center;
+    display:block;
+  }
+  .badge{
+    position:absolute; top:10px; left:10px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:9.5px; font-weight:500; letter-spacing:.09em; text-transform:uppercase;
+    padding:4px 8px 3px;
+    border-radius:100px;
+    backdrop-filter:blur(6px);
+  }
+  .badge.aired{ background:rgba(255,181,0,.94); color:#1b1508; }
+  .badge.sent{ background:rgba(24,19,15,.74); color:#f3f1ea; border:1px solid rgba(255,255,255,.18); }
+  .badge.photo-tag{
+    left:auto; right:10px; top:auto; bottom:10px;
+    background:rgba(24,19,15,.74); color:var(--text-dim);
+    border:1px solid rgba(255,255,255,.18); font-weight:400;
+  }
+
+  .card-body{
+    padding:14px 15px 16px;
+    display:flex; flex-direction:column; gap:5px; flex:1;
+  }
+  .card-body h3{
+    font-family:'Fraunces',serif; font-weight:600; font-size:15.5px;
+    line-height:1.22; margin:0; letter-spacing:-.005em;
+  }
+  .platform{
+    font-size:11.5px; color:var(--text-dim); font-weight:600;
+    letter-spacing:.02em;
+  }
+  .date-line{
+    margin-top:auto; padding-top:8px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.8px; color:var(--gold-strong);
+    line-height:1.4;
+  }
+  .note{
+    font-size:11px; color:var(--text-dim); line-height:1.4; margin-top:2px;
+  }
+  .sent .date-line{ color:var(--text-dim); }
+
+  .inv{
+    margin-top:10px; padding-top:9px; border-top:1px solid var(--line);
+  }
+  .inv summary{
+    cursor:pointer; list-style:none;
+    display:flex; align-items:center; gap:6px;
+    font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:500;
+    letter-spacing:.08em; text-transform:uppercase; color:var(--gold-strong);
+    user-select:none;
+  }
+  .inv summary::-webkit-details-marker{ display:none; }
+  .inv summary::before{
+    content:"\25B8"; display:inline-block; font-size:9px; color:var(--gold-strong);
+    transition:transform .16s ease;
+  }
+  .inv[open] summary::before{ transform:rotate(90deg); }
+  .inv summary .unconfirmed{
+    color:var(--text-dim); font-weight:400; letter-spacing:.04em; text-transform:none;
+    font-family:'Manrope',sans-serif; font-size:10px;
+  }
+  .inv-list{
+    margin:9px 0 0; padding:0; list-style:none;
+    display:flex; flex-direction:column; gap:4px;
+  }
+  .inv-list li{
+    font-size:11px; color:var(--text-dim);
+    display:flex; align-items:baseline; gap:7px;
+  }
+  .inv-list li .qty{
+    color:var(--text); font-weight:700; font-variant-numeric:tabular-nums;
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; min-width:2.4em;
+  }
+  .inv-list li.inv-order{
+    margin-top:4px; padding-top:4px; border-top:1px dashed var(--line);
+    font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.04em;
+    text-transform:uppercase; color:var(--gold-strong); opacity:.85;
+  }
+  .inv-list li.inv-order:first-child{ margin-top:0; padding-top:0; border-top:none; }
+
+  .poster-ph{
+    width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+    padding:18px; text-align:center;
+    background:linear-gradient(165deg, var(--surface-raised), var(--bg));
+  }
+  .poster-ph span{
+    font-family:'Fraunces',serif; font-style:italic; font-weight:600; font-size:15px;
+    color:var(--gold-strong); line-height:1.32; text-wrap:balance;
+  }
+
+
+  /* ---------- Secured Integrations (video) ---------- */
+  .grid-wide{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(280px,1fr));
+    gap:22px 18px;
+  }
+  .vcard{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+    display:flex; flex-direction:column;
+    transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .vcard:hover{ transform:translateY(-3px); }
+  .vcard-media{
+    position:relative;
+    aspect-ratio:16/9;
+    background:#000;
+  }
+  .vcard-media video{
+    width:100%; height:100%; object-fit:cover; display:block; background:#000;
+  }
+  .vcard-body{
+    padding:14px 15px 16px;
+    display:flex; flex-direction:column; gap:5px;
+  }
+  .vcard-body h3{
+    font-family:'Fraunces',serif; font-weight:600; font-size:15.5px;
+    line-height:1.22; margin:0; letter-spacing:-.005em;
+  }
+  .vcard-meta{
+    font-size:11.5px; color:var(--text-dim); font-weight:600; letter-spacing:.02em;
+  }
+  .vcard-impressions{
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:600;
+    color:var(--gold); letter-spacing:.02em; margin-top:3px;
+  }
+  .vcard-cast{
+    font-size:11px; color:var(--text-dim); line-height:1.4; margin-top:3px;
+  }
+  .vcard-episode{
+    font-family:'IBM Plex Mono',monospace; font-size:10.8px; color:var(--gold-strong);
+    line-height:1.4; margin-top:6px;
+  }
+  .vcard-clip-meta{
+    font-size:11px; color:var(--text-dim); line-height:1.4;
+    display:flex; flex-wrap:wrap; gap:4px 10px; margin-top:2px;
+  }
+  .clips{
+    margin-top:10px; padding-top:9px; border-top:1px solid var(--line);
+  }
+  .clips summary{
+    cursor:pointer; list-style:none;
+    display:flex; align-items:center; gap:6px;
+    font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:500;
+    letter-spacing:.08em; text-transform:uppercase; color:var(--gold-strong);
+    user-select:none;
+  }
+  .clips summary::-webkit-details-marker{ display:none; }
+  .clips summary::before{
+    content:"\25B8"; display:inline-block; font-size:9px; color:var(--gold-strong);
+    transition:transform .16s ease;
+  }
+  .clips[open] summary::before{ transform:rotate(90deg); }
+  .clip-list{
+    margin:10px 0 0; padding:0; list-style:none;
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .clip-item{
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .clip-item video{
+    width:100%; aspect-ratio:16/9; border-radius:6px; background:#000; display:block;
+  }
+  .clip-item .vcard-episode{ margin-top:0; }
+
+  .badge.propped{ background:rgba(255,181,0,.16); color:var(--gold-strong); border:1px solid rgba(255,181,0,.55); }
+  .vcard-type{
+    display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:9.5px; font-weight:500;
+    letter-spacing:.09em; text-transform:uppercase; padding:3px 7px 2px; border-radius:100px;
+    border:1px solid var(--line); color:var(--text-dim); margin-left:6px; vertical-align:2px;
+  }
+  .vcard-type.visual{ color:#1b1508; background:var(--gold); border-color:var(--gold); }
+  .vcard-media .vcard-type{ position:absolute; top:10px; left:10px; margin:0; z-index:1; }
+  .vcard-media .vcard-type.verbal{ background:rgba(24,19,15,.74); color:var(--text); border-color:rgba(255,255,255,.18); }
+  footer.page-footer{
+    margin-top:24px; padding-top:28px; border-top:1px solid var(--line);
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--text-dim);
+  }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="brand-row">
+      <img class="brand-logo" src="assets/smg-logo.png" alt="SMG Entertainment">
+      <img class="client-logo" src="assets/ups-logo.svg" alt="UPS">
+    </div>
+    <h1 class="title">UPS in <em>Entertainment</em></h1>
+    <p class="tagline">Every title the SMG entertainment team has tracked UPS in this year &#8212; verified on-screen and verbal placements, what's currently in the pipeline and exactly what UPS assets were sent. <em>Driven by culture. Placed with purpose.</em></p>
+    <div class="stat-row">
+      <div class="stat"><span class="num" id="securedCountHeader">0</span><span class="lbl">Secured</span></div>
+      <div class="stat"><span class="num" id="clipCount">0</span><span class="lbl">Verified clips</span></div>
+      <div class="stat"><span class="num" id="sentCount">0</span><span class="lbl">In pipeline</span></div>
+      <div class="stat"><span class="num" id="totalCount">0</span><span class="lbl">Total titles</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="group">
+    <div class="group-head">
+      <h2>Secured Integrations</h2>
+      <span class="count" id="securedCount2"></span>
+      <span class="desc">Verified 2026 placements with timestamped video proof</span>
+    </div>
+    <div class="grid-wide" id="securedGrid"></div>
+  </section>
+
+  <section class="group">
+    <div class="group-head">
+      <h2>In the Pipeline</h2>
+      <span class="count" id="sentCount2"></span>
+      <span class="desc">UPS assets sent or propped, placement pending air date</span>
+    </div>
+    <div class="grid" id="sentGrid"></div>
+  </section>
+
+  <footer class="page-footer">
+    <span>SMG Entertainment Strategy &amp; Marketing</span>
+    <span>Prepared for UPS &#183; Updated Oct 1, 2026</span>
+  </footer>
+</div>
+
+<script id="show-data" type="application/json">{"shows": [{"key": "naughty", "title": "Naughty", "platform": "Universal Pictures &#183; LuckyChap", "status": "propped", "date": "Shoots Oct 13, 2026 &#8212; release Nov 5, 2027", "note": "Cast: Jennifer Aniston, Peter Dinklage. Directed by Olivia Wilde.", "inventory": [{"type": "item", "qty": "&#8212;", "item": "UPS propping confirmed &#8212; items TBD"}], "summary": "Propping", "img": ""}, {"key": "runningpoint", "title": "Running Point", "platform": "Netflix &#183; Season 3", "status": "sent", "date": "Air Date: TBD &#8212; Season 3 in production", "note": "Cast: Kate Hudson, Drew Tarver, Scott MacArthur.", "inventory": [{"type": "header", "text": "Order #7464 &#183; 09/09/2026"}, {"type": "item", "qty": "1", "item": "Packaging"}], "img": ""}, {"key": "ncis", "title": "NCIS: NY", "platform": "CBS &#183; Season 1", "status": "sent", "date": "Season 1 premieres Oct 6, 2026", "note": "Cast: Scott Caan, Jennifer Beals, LL Cool J.", "inventory": [{"type": "header", "text": "Order #7455 &#183; 08/18/2026"}, {"type": "item", "qty": "1", "item": "Packaging"}], "img": "showcards/ncis.jpg"}, {"key": "landman", "title": "Landman", "platform": "Paramount+ &#183; Season 3", "status": "sent", "date": "Air Date: TBD &#8212; Season 3 in production", "note": "Cast: Billy Bob Thornton, Ali Larter, Demi Moore.", "inventory": [{"type": "header", "text": "Order #7453 &#183; 08/18/2026"}, {"type": "item", "qty": "1", "item": "Packaging"}], "img": "showcards/landman.jpg"}, {"key": "thunderroad", "title": "Thunder Road", "platform": "AMC &#183; Season 1", "status": "sent", "date": "Air Date: TBD &#8212; in production, wraps Dec 1, 2026", "note": "Cast: Dennis Quaid, Chase Stokes, Maggie Grace, Michael Rooker.", "inventory": [{"type": "header", "text": "Order #7442 &#183; 08/06/2026"}, {"type": "item", "qty": "1", "item": "Packaging"}], "img": ""}, {"key": "nda", "title": "NDA", "platform": "Feature Film", "status": "sent", "date": "Air Date: TBD &#8212; wrapped, no release date yet", "note": "Cast: Rachel Zegler, Penn Badgley.", "inventory": [{"type": "header", "text": "Order #7425 &#183; 07/09/2026"}, {"type": "item", "qty": "1", "item": "DIAD"}, {"type": "item", "qty": "8", "item": "Uniform"}, {"type": "item", "qty": "2", "item": "Packaging"}], "img": ""}, {"key": "grandgear", "title": "Zero Day (aka Grand Gear)", "platform": "Theatrical &#183; J.J. Abrams / Bad Robot", "status": "sent", "date": "Theatrical release Feb 18, 2027", "inventory": [{"type": "header", "text": "Order #7410 &#183; 06/23/2026"}, {"type": "item", "qty": "1", "item": "UPS Package Car"}], "img": "showcards/grandgear.jpg"}, {"key": "stdenis", "title": "St. Denis Medical", "platform": "NBC &amp; Peacock &#183; Season 3", "status": "sent", "date": "Air Date: TBD &#8212; Season 3 in production", "note": "Cast: Wendi McLendon-Covey, Allison Tolman, Josh Lawson.", "inventory": [{"type": "header", "text": "Order #7407 &#183; 06/16/2026"}, {"type": "item", "qty": "1", "item": "Healthcare Packaging"}], "img": "showcards/stdenis.jpg"}, {"key": "aquietplace3", "title": "A Quiet Place Part III", "platform": "Paramount Pictures &#183; Feature Film", "status": "sent", "date": "Theatrical release Jul 30, 2027", "note": "Cast: Emily Blunt, Cillian Murphy, Jack O&#8217;Connell.", "inventory": [{"type": "header", "text": "Order #7397 &#183; 06/01/2026"}, {"type": "item", "qty": "1", "item": "UPS Package Car"}], "img": ""}, {"key": "morningshow", "title": "The Morning Show", "platform": "Apple TV+ &#183; Season 5", "status": "sent", "date": "Air Date: TBD &#8212; wrapped, no release date yet", "note": "Cast: Jennifer Aniston, Reese Witherspoon, Billy Crudup.", "inventory": [{"type": "header", "text": "Order #7395 &#183; 06/01/2026"}, {"type": "item", "qty": "1", "item": "UPS Package Car"}], "img": "showcards/morningshow.jpg"}, {"key": "tyrant", "title": "Tyrant", "platform": "Feature Film", "status": "sent", "date": "Air Date: TBD &#8212; wrapped, no release date yet", "note": "Cast: Julia Garner, Charlize Theron.", "inventory": [{"type": "header", "text": "Order #7396 &#183; 06/01/2026"}, {"type": "item", "qty": "1", "item": "UPS Package Car"}], "img": ""}]}</script>
+<script>
+(function(){
+  const raw = JSON.parse(document.getElementById('show-data').textContent);
+  const shows = raw.shows;
+  
+  function card(s){
+    const el = document.createElement('article');
+    el.className = 'card ' + s.status;
+    const img = s.img || '';
+    const inv = s.inventory || [];
+    const invItems = inv.map(i => i.type === 'header'
+      ? `<li class="inv-order">${i.text}</li>`
+      : `<li><span class="qty">${i.qty}</span><span>${i.item}</span></li>`
+    ).join('');
+    const invSummary = s.summary || 'Items Sent';
+    const media = img
+      ? `<img src="${img}" alt="${s.title} showcard" loading="lazy">`
+      : `<div class="poster-ph"><span>${s.title}</span></div>`;
+    el.innerHTML = `
+      <div class="card-media">
+        ${media}
+        <span class="badge ${s.status}">${s.status === 'propped' ? 'Propped' : 'Sent'}</span>
+        ${s.photoIsActor ? '<span class="badge photo-tag">Cast photo</span>' : ''}
+      </div>
+      <div class="card-body">
+        <h3>${s.title}</h3>
+        <div class="platform">${s.platform}</div>
+        ${s.date ? `<div class="date-line">${s.date}</div>` : ''}
+        ${s.note ? `<div class="note">${s.note}</div>` : ''}
+        <details class="inv">
+          <summary>${invSummary}</summary>
+          <ul class="inv-list">${invItems}</ul>
+        </details>
+      </div>
+    `;
+    return el;
+  }
+
+  const sent = shows;
+
+  const sentGrid = document.getElementById('sentGrid');
+  sent.forEach(s => sentGrid.appendChild(card(s)));
+
+  document.getElementById('sentCount').textContent = sent.length;
+  document.getElementById('sentCount2').textContent = sent.length;
+  window.__pipelineCount = sent.length;
+})();
+</script>
+
+<script id="secured-data" type="application/json">{"titles": [{"title": "The Real Housewives of New York City", "network": "Bravo / Peacock", "genre": "Reality TV", "scenes": [{"season": 16, "episode": 4, "episodeTitle": "Gloves Off at the Gala", "firstAirDate": "Oct 1, 2026", "timestamps": "00h 06m 25s", "screenTime": "0:00:01", "placementType": "Visual", "video": "clips/00.mp4", "thumb": "clips/00.jpg"}]}, {"title": "R.J. Decker", "network": "ABC / Hulu", "genre": "Crime Drama", "cast": ["Scott Speedman", "Jaina Lee Ortiz", "Kevin Rankin"], "scenes": [{"season": 2, "episode": 1, "episodeTitle": "The Point of Us Breaking", "firstAirDate": "Sep 16, 2026", "timestamps": "00h 03m 54s", "screenTime": null, "placementType": "Verbal", "video": "clips/01.mp4", "thumb": "clips/01.jpg"}]}, {"title": "The Five Star Weekend", "network": "Peacock", "genre": "Drama", "cast": ["Jennifer Garner", "Regina Hall", "Chlo&#235; Sevigny", "Timothy Olyphant"], "scenes": [{"season": 1, "episode": 1, "episodeTitle": "Friday Arrivals", "firstAirDate": "Jul 9, 2026", "timestamps": "00h 05m 36s; 00h 05m 46s&#8211;00h 05m 47s", "screenTime": "0:00:03", "placementType": "Visual", "video": "clips/02.mp4", "thumb": "clips/02.jpg"}]}, {"title": "The Bear", "network": "FX / Hulu", "genre": "Comedy-Drama", "cast": ["Jeremy Allen White", "Ayo Edebiri", "Ebon Moss-Bachrach"], "scenes": [{"season": 5, "episode": 3, "episodeTitle": "Mint", "firstAirDate": "Jun 26, 2026", "timestamps": "00h 18m 25s", "screenTime": null, "placementType": "Verbal", "video": "clips/03.mp4", "thumb": "clips/03.jpg"}]}, {"title": "Maximum Pleasure Guaranteed", "network": "Apple TV", "genre": "Dark Comedy", "cast": ["Tatiana Maslany", "Jake Johnson", "Murray Bartlett"], "scenes": [{"season": 1, "episode": 7, "episodeTitle": "Flighting", "firstAirDate": "Jun 24, 2026", "timestamps": "00h 20m 13s", "screenTime": null, "placementType": "Verbal", "video": "clips/04.mp4", "thumb": "clips/04.jpg"}]}, {"title": "The Real Housewives of Rhode Island", "network": "Bravo / Peacock", "genre": "Reality TV", "scenes": [{"season": 1, "episode": 13, "episodeTitle": "Reunion Pt. 1", "firstAirDate": "Jun 23, 2026", "timestamps": "00h 05m 00s", "screenTime": null, "placementType": "Verbal", "video": "clips/05.mp4", "thumb": "clips/05.jpg"}, {"season": 1, "episode": 6, "episodeTitle": "Newport New Problems", "firstAirDate": "May 4, 2026", "timestamps": "00h 11m 48s&#8211;00h 11m 49s", "screenTime": "0:00:02", "placementType": "Visual", "video": "clips/06.mp4", "thumb": "clips/06.jpg"}]}, {"title": "Jimmy Kimmel Live!", "network": "ABC", "genre": "Late-Night Talk", "scenes": [{"season": 24, "episode": 133, "episodeTitle": "Larry David, Dr. Henry Louis Gates Jr.", "firstAirDate": "Jun 23, 2026", "timestamps": "00h 08m 45s&#8211;00h 09m 06s; 00h 09m 22s&#8211;00h 09m 44s; 00h 09m 46s", "screenTime": "0:00:46", "placementType": "Visual", "video": "clips/07.mp4", "thumb": "clips/07.jpg"}]}, {"title": "America's Got Talent", "network": "NBC / Peacock", "genre": "Competition", "scenes": [{"season": 21, "episode": 3, "episodeTitle": "Auditions 3", "firstAirDate": "Jun 17, 2026", "timestamps": "01h 02m 27s", "screenTime": null, "placementType": "Verbal", "video": "clips/08.mp4", "thumb": "clips/08.jpg"}]}, {"title": "In the City", "network": "Bravo / Peacock", "genre": "Reality TV", "scenes": [{"season": 1, "episode": 5, "episodeTitle": "Trolley Off the Tracks", "firstAirDate": "Jun 17, 2026", "timestamps": "00h 30m 27s", "screenTime": "0:00:01", "placementType": "Visual", "video": "clips/09.mp4", "thumb": "clips/09.jpg"}, {"season": 1, "episode": 5, "episodeTitle": "Trolley Off the Tracks", "firstAirDate": "Jun 17, 2026", "timestamps": "00h 30m 48s", "screenTime": "0:00:01", "placementType": "Visual", "video": "clips/10.mp4", "thumb": "clips/10.jpg"}, {"season": 1, "episode": 1, "episodeTitle": "Welcome to New York", "firstAirDate": "May 20, 2026", "timestamps": "00h 16m 27s&#8211;00h 16m 28s; 00h 16m 32s&#8211;00h 16m 34s; 00h 16m 45s&#8211;00h 16m 48s; 00h 16m 50s", "screenTime": "0:00:10", "placementType": "Visual", "video": "clips/11.mp4", "thumb": "clips/11.jpg"}]}, {"title": "America's Sweethearts: Dallas Cowboys Cheerleaders", "network": "Netflix", "genre": "Docuseries", "scenes": [{"season": 3, "episode": 7, "episodeTitle": "Leap of Faith", "firstAirDate": "Jun 16, 2026", "timestamps": "00h 21m 20s&#8211;00h 21m 23s", "screenTime": "0:00:04", "placementType": "Visual", "video": "clips/12.mp4", "thumb": "clips/12.jpg"}]}, {"title": "90 Day Fianc&#233;", "network": "TLC / Discovery+ / HBO Max", "genre": "Reality TV", "scenes": [{"season": 12, "episode": 5, "episodeTitle": "Something Old, Something New", "firstAirDate": "Jun 8, 2026", "timestamps": "01h 25m 54s", "screenTime": "0:00:01", "placementType": "Visual", "video": "clips/13.mp4", "thumb": "clips/13.jpg"}]}, {"title": "The Real Housewives of Atlanta", "network": "Bravo / Peacock", "genre": "Reality TV", "scenes": [{"season": 17, "episode": 10, "episodeTitle": "Star Spangled Mess", "firstAirDate": "Jun 8, 2026", "timestamps": "00h 24m 38s", "screenTime": null, "placementType": "Verbal", "video": "clips/14.mp4", "thumb": "clips/14.jpg"}, {"season": 17, "episode": 3, "episodeTitle": "Rum, Ruptures &amp; Redemption", "firstAirDate": "Apr 20, 2026", "timestamps": "00h 18m 02s", "screenTime": "0:00:01", "placementType": "Visual", "video": "clips/15.mp4", "thumb": "clips/15.jpg"}]}, {"title": "The Boys", "network": "Prime Video", "genre": "Superhero Drama", "cast": ["Karl Urban", "Jack Quaid", "Antony Starr"], "scenes": [{"season": 5, "episode": 5, "episodeTitle": "One-Shots", "firstAirDate": "Apr 29, 2026", "timestamps": "00h 39m 18s", "screenTime": null, "placementType": "Verbal", "video": "clips/16.mp4", "thumb": "clips/16.jpg"}]}, {"title": "The Rookie", "network": "ABC / Hulu", "genre": "Police Drama", "cast": ["Nathan Fillion", "Melissa O'Neil", "Eric Winter"], "scenes": [{"season": 8, "episode": 17, "episodeTitle": "Dead Ringer", "firstAirDate": "Apr 28, 2026", "timestamps": "00h 07m 26s", "screenTime": null, "placementType": "Verbal", "video": "clips/17.mp4", "thumb": "clips/17.jpg"}]}, {"title": "Law &amp; Order: Special Victims Unit", "network": "NBC / Peacock", "genre": "Crime Drama", "cast": ["Mariska Hargitay", "Ice-T", "Peter Scanavino"], "scenes": [{"season": 27, "episode": 18, "episodeTitle": "Gimmick", "firstAirDate": "Apr 24, 2026", "timestamps": "00h 30m 09s&#8211;00h 30m 16s", "screenTime": "0:00:08", "placementType": "Visual", "video": "clips/18.mp4", "thumb": "clips/18.jpg"}]}, {"title": "Running Point", "network": "Netflix", "genre": "Sports Comedy", "cast": ["Kate Hudson", "Brenda Song", "Drew Tarver"], "scenes": [{"season": 2, "episode": 2, "episodeTitle": "The Poacher", "firstAirDate": "Apr 23, 2026", "timestamps": "00h 12m 42s", "screenTime": null, "placementType": "Verbal", "video": "clips/19.mp4", "thumb": "clips/19.jpg"}]}, {"title": "Southern Hospitality", "network": "Bravo / Peacock", "genre": "Reality TV", "scenes": [{"season": 4, "episode": 5, "episodeTitle": "Float Around and Find Out", "firstAirDate": "Apr 2, 2026", "timestamps": "00h 03m 20s", "screenTime": null, "placementType": "Verbal", "video": "clips/20.mp4", "thumb": "clips/20.jpg"}]}, {"title": "Crime 101", "network": "Amazon MGM Studios", "genre": "Crime Thriller", "cast": ["Chris Hemsworth", "Mark Ruffalo", "Halle Berry"], "scenes": [{"season": null, "episode": null, "episodeTitle": null, "firstAirDate": "Apr 2, 2026", "timestamps": "01h 21m 13s&#8211;01h 21m 14s", "screenTime": "0:00:02", "placementType": "Visual", "video": "clips/21.mp4", "thumb": "clips/21.jpg"}, {"season": null, "episode": null, "episodeTitle": null, "firstAirDate": "Apr 2, 2026", "timestamps": "01h 21m 34s", "screenTime": "0:00:01", "placementType": "Visual", "video": "clips/22.mp4", "thumb": "clips/22.jpg"}, {"season": null, "episode": null, "episodeTitle": null, "firstAirDate": "Apr 2, 2026", "timestamps": "01h 22m 16s&#8211;01h 22m 17s; 01h 22m 19s", "screenTime": "0:00:03", "placementType": "Visual", "video": "clips/23.mp4", "thumb": "clips/23.jpg"}]}, {"title": "56 Days", "network": "Prime Video", "genre": "Thriller", "cast": ["Dove Cameron", "Avan Jogia"], "scenes": [{"season": 1, "episode": 1, "episodeTitle": null, "firstAirDate": "Feb 18, 2026", "timestamps": "00h 25m 59s", "screenTime": null, "placementType": "Verbal", "video": "clips/24.mp4", "thumb": "clips/24.jpg"}]}, {"title": "Saturday Night Live", "network": "NBC / Peacock", "genre": "Sketch Comedy", "scenes": [{"season": 51, "episode": 12, "episodeTitle": "Alexander Skarsg&#229;rd; Cardi B", "firstAirDate": "Feb 3, 2026", "timestamps": "00h 46m 03s&#8211;00h 46m 17s", "screenTime": "0:00:15", "placementType": "Visual", "video": "clips/25.mp4", "thumb": "clips/25.jpg"}, {"season": 51, "episode": 12, "episodeTitle": "Alexander Skarsg&#229;rd; Cardi B", "firstAirDate": "Feb 2, 2026", "timestamps": "00h 46m 07s", "screenTime": null, "placementType": "Verbal", "video": "clips/26.mp4", "thumb": "clips/26.jpg"}]}]}</script>
+<script>
+(function(){
+  const data = JSON.parse(document.getElementById('secured-data').textContent);
+  const titles = data.titles;
+
+  function episodeLine(s){
+    const parts = [];
+    if (s.season != null && s.episode != null){
+      const ep = 'S' + String(s.season).padStart(2,'0') + 'E' + String(s.episode).padStart(2,'0');
+      parts.push(s.episodeTitle ? `${ep} "${s.episodeTitle}"` : ep);
+    } else if (s.episodeTitle) {
+      parts.push(s.episodeTitle);
+    }
+    if (s.firstAirDate) parts.push(s.firstAirDate);
+    return parts.join(' &#183; ');
+  }
+
+  function fmtImpressions(n){
+    if (n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (n >= 1000) return Math.round(n/1000) + 'K';
+    return String(n);
+  }
+
+  function clipMeta(s){
+    const bits = [];
+    if (s.screenTime) bits.push('Screen time ' + s.screenTime);
+    if (s.placementType === 'Verbal') bits.push('Verbal mention at ' + s.timestamps);
+    else if (s.timestamps) bits.push(s.timestamps);
+    if (s.impressions) bits.push(fmtImpressions(s.impressions) + ' impressions (Nielsen)');
+    return bits.join(' &#183; ');
+  }
+
+  function vcard(t){
+    const el = document.createElement('article');
+    el.className = 'vcard';
+    const hero = t.scenes[0];
+    const rest = t.scenes.slice(1);
+
+    const restHtml = rest.map(s => `
+      <li class="clip-item">
+        <video controls preload="none" poster="${s.thumb}" playsinline>
+          <source src="${s.video}" type="video/mp4">
+        </video>
+        <div class="vcard-episode">${episodeLine(s)}<span class="vcard-type ${s.placementType.toLowerCase()}">${s.placementType}</span></div>
+        <div class="vcard-clip-meta"><span>${clipMeta(s)}</span></div>
+      </li>
+    `).join('');
+
+    el.innerHTML = `
+      <div class="vcard-media">
+        <span class="vcard-type ${hero.placementType.toLowerCase()}">${hero.placementType}</span>
+        <video controls preload="none" poster="${hero.thumb}" playsinline>
+          <source src="${hero.video}" type="video/mp4">
+        </video>
+      </div>
+      <div class="vcard-body">
+        <h3>${t.title}</h3>
+        <div class="vcard-meta">${t.network}${t.genre ? ' &#183; ' + t.genre : ''}</div>
+        ${t.cast ? `<div class="vcard-cast">${t.cast.join(', ')}</div>` : ''}
+        <div class="vcard-impressions">${t.totalImpressions ? fmtImpressions(t.totalImpressions) + ' impressions to date (Nielsen)' : 'Impressions: TBD'}</div>
+        <div class="vcard-episode">${episodeLine(hero)}</div>
+        <div class="vcard-clip-meta"><span>${clipMeta(hero)}</span></div>
+        ${rest.length ? `
+        <details class="clips">
+          <summary>${rest.length} more verified ${rest.length === 1 ? 'clip' : 'clips'}</summary>
+          <ul class="clip-list">${restHtml}</ul>
+        </details>` : ''}
+      </div>
+    `;
+    return el;
+  }
+
+  const grid = document.getElementById('securedGrid');
+  titles.forEach(t => grid.appendChild(vcard(t)));
+  document.getElementById('securedCount2').textContent = titles.length;
+  document.getElementById('securedCountHeader').textContent = titles.length;
+  document.getElementById('totalCount').textContent = titles.length + (window.__pipelineCount || 0);
+  document.getElementById('clipCount').textContent = titles.reduce((n, t) => n + t.scenes.length, 0);
+})();
+</script>
+</body>
+</html>
