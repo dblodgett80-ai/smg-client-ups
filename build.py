@@ -110,8 +110,30 @@ def ranges(ts):
     if start is not None: out.append((start, prev))
     return '; '.join(fmt(a) if a == b else f"{fmt(a)}&#8211;{fmt(b)}" for a, b in out)
 
+CLIP_INDEX = os.path.join(CLIPS, 'index.json')
+
+def process_folder(folder):
+    """Copy one source-media/<folder>'s clips + posters into clips/ and return their metadata."""
+    d = os.path.join(SRC, folder)
+    for old in glob.glob(f"{CLIPS}/{folder}-*"): os.remove(old)
+    frames = sorted(glob.glob(d + '/*.jpg'), key=frame_secs)
+    out = []
+    for i, v in enumerate(sorted(glob.glob(d + '/*.mp4'), key=lambda p: window(p)[0]), 1):
+        a, b = window(v)
+        inwin = [f for f in frames if a <= frame_secs(f) <= b] or frames
+        fs = sorted({frame_secs(f) for f in inwin})
+        key = f"{folder}-{i}"
+        shutil.copy(v, f"{CLIPS}/{key}.mp4")
+        shutil.copy(inwin[len(inwin) // 2], f"{CLIPS}/{key}.jpg")
+        out.append(dict(video=f"clips/{key}.mp4", thumb=f"clips/{key}.jpg",
+                        timestamps=ranges(fs), seconds=len(fs)))
+    return out
+
 def build_clips():
-    shutil.rmtree(CLIPS, ignore_errors=True); os.makedirs(CLIPS)
+    """Clips come from source-media/ when it's on this machine; otherwise from the
+    already-published clips/index.json, so the page can be rebuilt without the raw files."""
+    os.makedirs(CLIPS, exist_ok=True)
+    index = json.load(open(CLIP_INDEX)) if os.path.exists(CLIP_INDEX) else {}
     n = 0
     for t in TITLES:
         out = []
@@ -119,25 +141,25 @@ def build_clips():
         for folder, season, ep, ept, date, ptype in t['scenes']:
             nb, ns = NIELSEN.get(folder, (0, 0))
             tb += nb; tsm += ns
-            d = os.path.join(SRC, folder)
-            frames = sorted(glob.glob(d + '/*.jpg'), key=frame_secs)
-            for v in sorted(glob.glob(d + '/*.mp4'), key=lambda p: window(p)[0]):
-                a, b = window(v)
-                inwin = [f for f in frames if a <= frame_secs(f) <= b] or frames
-                fs = sorted({frame_secs(f) for f in inwin})
-                poster = inwin[len(inwin) // 2]
-                key = f"{n:02d}"; n += 1
-                shutil.copy(v, f"{CLIPS}/{key}.mp4")
-                shutil.copy(poster, f"{CLIPS}/{key}.jpg")
+            if os.path.isdir(os.path.join(SRC, folder)):
+                index[folder] = process_folder(folder)
+            if folder not in index:
+                raise SystemExit(f"No clips for {folder}: add source-media/{folder}/ with the .mp4 and .jpg files")
+            for c in index[folder]:
+                n += 1
                 out.append(dict(season=season, episode=ep, episodeTitle=ept, firstAirDate=date,
-                                timestamps=ranges(fs),
-                                screenTime=None if ptype == 'Verbal' else f"0:{len(fs)//60:02d}:{len(fs)%60:02d}",
-                                placementType=ptype, video=f"clips/{key}.mp4", thumb=f"clips/{key}.jpg",
+                                timestamps=c['timestamps'],
+                                screenTime=None if ptype == 'Verbal' else f"0:{c['seconds']//60:02d}:{c['seconds']%60:02d}",
+                                placementType=ptype, video=c['video'], thumb=c['thumb'],
                                 impressions=(nb + ns) or None))
         t['scenes'] = out
         if tb + tsm:
             t['totalImpressions'] = tb + tsm
             t['split'] = split_line(tb, tsm)
+    used = {c['video'].split('/')[-1][:-4] for f in index for c in index[f]}
+    for f in glob.glob(f"{CLIPS}/*.mp4") + glob.glob(f"{CLIPS}/*.jpg"):
+        if os.path.basename(f)[:-4] not in used: os.remove(f)
+    json.dump(index, open(CLIP_INDEX, 'w'), indent=1)
     return n
 
 # ---------- Pipeline ----------
